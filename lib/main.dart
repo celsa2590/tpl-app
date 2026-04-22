@@ -2,9 +2,15 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
+
 void main() {
   runApp(const MyApp());
 }
+
+
+const primaryColor = Color(0xFFD4AF37); // dorado TPL
+const cardColor = Color(0xFF0E1118);
+const borderColor = Color(0xFF1C2230);
 
 const String apiBase = 'https://liga-backend-f08y.onrender.com';
 
@@ -54,10 +60,18 @@ class _MainNavigationState extends State<MainNavigation> {
 
   @override
   Widget build(BuildContext context) {
+
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('TPL Chile'),
-      ),
+  appBar: AppBar(
+    title: Row(
+      children: [
+        Image.asset('assets/tpl_logo_trans.png', height: 30),
+        const SizedBox(width: 10),
+        const Text('TPL Chile'),
+      ],
+    ),
+  ),
+
       body: pages[currentIndex],
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: currentIndex,
@@ -513,6 +527,10 @@ class _StandingsScreenState extends State<StandingsScreen> {
   }
 }
 
+
+
+
+
 class _TieCard extends StatelessWidget {
   final TieItem tie;
 
@@ -523,9 +541,9 @@ class _TieCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.04),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white12),
+        color: const Color(0xFF11151F),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: borderColor),
       ),
       child: Row(
         children: [
@@ -535,21 +553,31 @@ class _TieCard extends StatelessWidget {
               children: [
                 Text(
                   '${tie.homeTeam} vs ${tie.awayTeam}',
-                  style: const TextStyle(fontWeight: FontWeight.w800),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w800,
+                    fontSize: 15,
+                  ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   'Sede ${tie.venueClub}',
-                  style: const TextStyle(color: Colors.white70),
+                  style: const TextStyle(color: Colors.white60),
                 ),
               ],
             ),
           ),
-          Text(
-            tie.timeLabel,
-            style: const TextStyle(
-              color: Colors.amber,
-              fontWeight: FontWeight.w800,
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+              color: primaryColor.withOpacity(0.15),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Text(
+              tie.timeLabel,
+              style: const TextStyle(
+                color: primaryColor,
+                fontWeight: FontWeight.w800,
+              ),
             ),
           ),
         ],
@@ -557,6 +585,9 @@ class _TieCard extends StatelessWidget {
     );
   }
 }
+
+
+
 
 class _CalendarTieCard extends StatelessWidget {
   final TieItem tie;
@@ -612,6 +643,7 @@ class _CalendarTieCard extends StatelessWidget {
   }
 }
 
+
 class _SectionCard extends StatelessWidget {
   final Widget child;
 
@@ -622,14 +654,17 @@ class _SectionCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(24),
-        color: Colors.white.withOpacity(0.04),
-        border: Border.all(color: Colors.white12),
+        borderRadius: BorderRadius.circular(20),
+        color: cardColor,
+        border: Border.all(color: borderColor),
       ),
       child: child,
     );
   }
 }
+
+
+
 
 class _ErrorState extends StatelessWidget {
   final String message;
@@ -728,6 +763,7 @@ class StandingItem {
 class MatchGameItem {
   final int matchId;
   final int roundNumber;
+  final int gameNumber;
   final String homeTeam;
   final String awayTeam;
   final String venueClub;
@@ -737,6 +773,7 @@ class MatchGameItem {
   MatchGameItem({
     required this.matchId,
     required this.roundNumber,
+    required this.gameNumber,
     required this.homeTeam,
     required this.awayTeam,
     required this.venueClub,
@@ -748,6 +785,7 @@ class MatchGameItem {
     return MatchGameItem(
       matchId: json['match_id'] as int? ?? 0,
       roundNumber: json['round_number'] as int? ?? 0,
+      gameNumber: json['game_number'] as int? ?? 0,
       homeTeam: json['home_team_name']?.toString() ?? '',
       awayTeam: json['away_team_name']?.toString() ?? '',
       venueClub: json['venue_club']?.toString() ?? '',
@@ -836,7 +874,7 @@ List<TieItem> groupMatchesByTie(List<MatchGameItem> matches) {
 
   final ties = grouped.entries.map((entry) {
     final games = entry.value;
-    games.sort((a, b) => a.category.compareTo(b.category));
+    games.sort((a, b) => a.gameNumber.compareTo(b.gameNumber));
     final first = games.first;
 
     return TieItem(
