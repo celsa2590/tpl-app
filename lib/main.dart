@@ -14,30 +14,78 @@ const borderColor = Color(0xFF1C2230);
 
 const String apiBase = 'https://liga-backend-f08y.onrender.com';
 
+Widget tplCard({required Widget child}) {
+  return Container(
+    margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+    padding: const EdgeInsets.all(16),
+    decoration: BoxDecoration(
+      color: const Color(0xFF111827),
+      borderRadius: BorderRadius.circular(20),
+      border: Border.all(color: Colors.white.withOpacity(0.05)),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withOpacity(0.4),
+          blurRadius: 10,
+          offset: const Offset(0, 4),
+        )
+      ],
+    ),
+    child: child,
+  );
+}
+
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'TPL Chile',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData.dark().copyWith(
-        scaffoldBackgroundColor: const Color(0xFF05080F),
-        appBarTheme: const AppBarTheme(
-          backgroundColor: Color(0xFF0A0D14),
-          elevation: 0,
+Widget build(BuildContext context) {
+  return MaterialApp(
+    title: 'TPL Chile',
+    debugShowCheckedModeBanner: false,
+    theme: ThemeData(
+      brightness: Brightness.dark,
+
+      // 🎨 Fondo general app
+      scaffoldBackgroundColor: const Color(0xFF0B0F1A),
+
+      // 🟨 Colores principales TPL
+      primaryColor: const Color(0xFFD4AF37),
+
+      colorScheme: const ColorScheme.dark(
+        primary: Color(0xFFD4AF37),
+        secondary: Color(0xFF1E293B),
+      ),
+
+      // 🔠 Tipografía base
+      textTheme: const TextTheme(
+        titleLarge: TextStyle(
+          fontSize: 20,
+          fontWeight: FontWeight.bold,
         ),
-        bottomNavigationBarTheme: const BottomNavigationBarThemeData(
-          backgroundColor: Colors.black,
-          selectedItemColor: Colors.amber,
-          unselectedItemColor: Colors.white54,
-          type: BottomNavigationBarType.fixed,
+        bodyMedium: TextStyle(
+          fontSize: 14,
+          color: Colors.white70,
         ),
       ),
-      home: const MainNavigation(),
-    );
-  }
+
+      // 🔝 AppBar
+      appBarTheme: const AppBarTheme(
+        backgroundColor: Color(0xFF0A0D14),
+        elevation: 0,
+        centerTitle: false,
+      ),
+
+      // 🔻 Bottom navigation
+      bottomNavigationBarTheme: const BottomNavigationBarThemeData(
+        backgroundColor: Colors.black,
+        selectedItemColor: Color(0xFFD4AF37),
+        unselectedItemColor: Colors.white54,
+        type: BottomNavigationBarType.fixed,
+      ),
+    ),
+    home: const MainNavigation(),
+  );
+ }
 }
 
 class MainNavigation extends StatefulWidget {
@@ -358,7 +406,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
 
               return Padding(
                 padding: const EdgeInsets.only(bottom: 16),
-                child: _SectionCard(
+                child: tplCard(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -596,52 +644,93 @@ class _CalendarTieCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Theme(
-      data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-      child: ExpansionTile(
-        tilePadding: EdgeInsets.zero,
-        childrenPadding: EdgeInsets.zero,
-        title: Text(
-          '${tie.homeTeam} vs ${tie.awayTeam}',
-          style: const TextStyle(fontWeight: FontWeight.w800),
-        ),
-        subtitle: Text(
-          'Sede ${tie.venueClub} • ${tie.timeLabel}',
-          style: const TextStyle(color: Colors.white70),
-        ),
-        children: tie.games.map((game) {
-          return Container(
-            width: double.infinity,
-            margin: const EdgeInsets.only(top: 8),
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.04),
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: Colors.white10),
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFF111827),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: borderColor),
+      ),
+      child: Theme(
+        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+        child: ExpansionTile(
+          tilePadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+          childrenPadding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
+          title: Text(
+            '${tie.homeTeam} vs ${tie.awayTeam}',
+            style: const TextStyle(
+              fontWeight: FontWeight.w800,
+              fontSize: 15,
             ),
+          ),
+          subtitle: Padding(
+            padding: const EdgeInsets.only(top: 4),
             child: Row(
               children: [
+                const Icon(Icons.location_on, size: 14, color: Colors.white54),
+                const SizedBox(width: 4),
                 Expanded(
                   child: Text(
-                    game.category,
-                    style: const TextStyle(fontWeight: FontWeight.w700),
+                    tie.venueClub,
+                    style: const TextStyle(color: Colors.white70),
                   ),
                 ),
                 Text(
-                  game.timeLabel,
+                  tie.timeLabel,
                   style: const TextStyle(
-                    color: Colors.amber,
-                    fontWeight: FontWeight.w700,
+                    color: primaryColor,
+                    fontWeight: FontWeight.w800,
                   ),
                 ),
               ],
             ),
-          );
-        }).toList(),
+          ),
+          children: tie.games.map((game) {
+            return Container(
+              width: double.infinity,
+              margin: const EdgeInsets.only(top: 8),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.04),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: Colors.white10),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: primaryColor.withOpacity(0.14),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Text(
+                      game.category,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: primaryColor,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                  const Spacer(),
+                  Text(
+                    game.timeLabel,
+                    style: const TextStyle(
+                      color: Colors.white70,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }).toList(),
+        ),
       ),
     );
   }
 }
+
+
+
 
 
 class _SectionCard extends StatelessWidget {
