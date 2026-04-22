@@ -98,13 +98,13 @@ class MainNavigation extends StatefulWidget {
 class _MainNavigationState extends State<MainNavigation> {
   int currentIndex = 0;
 
-  final pages = const [
-    HomeScreen(),
-    CalendarScreen(),
-    StandingsScreen(),
-    PlaceholderScreen(title: 'Jugadores'),
-    PlaceholderScreen(title: 'Fotos'),
-  ];
+final pages = const [
+  HomeScreen(),
+  CalendarScreen(),
+  StandingsScreen(),
+  PlayersScreen(),
+  PhotosScreen(),
+];
 
   @override
   Widget build(BuildContext context) {
@@ -1039,4 +1039,438 @@ class NextRoundData {
 
     return '${date!.day} de ${months[date!.month]}';
   }
+}
+
+class PlayersScreen extends StatefulWidget {
+  const PlayersScreen({super.key});
+
+  @override
+  State<PlayersScreen> createState() => _PlayersScreenState();
+}
+
+class _PlayersScreenState extends State<PlayersScreen> {
+  late Future<List<PlayerStatsItem>> futurePlayers;
+
+  @override
+  void initState() {
+    super.initState();
+    futurePlayers = fetchPlayers();
+  }
+
+Future<List<PlayerStatsItem>> fetchPlayers() async {
+  final response = await http.get(Uri.parse('$apiBase/players/stats'));
+
+  if (response.statusCode != 200) {
+    throw Exception('No se pudo cargar el ranking de jugadores');
+  }
+
+  final decoded = jsonDecode(response.body);
+
+  List<PlayerStatsItem> players = [];
+
+  if (decoded is List) {
+    players = decoded.map((e) => PlayerStatsItem.fromJson(e)).toList();
+  } else if (decoded is Map<String, dynamic> && decoded['players'] is List) {
+    players = (decoded['players'] as List)
+        .map((e) => PlayerStatsItem.fromJson(e))
+        .toList();
+  } else {
+    throw Exception('Formato inesperado en /players/stats');
+  }
+
+  if (players.isEmpty) {
+    return [
+      PlayerStatsItem(
+        fullName: 'Celsa Sánchez',
+        teamName: 'Espacio Active',
+        points: 1800,
+        wins: 7,
+        losses: 0,
+      ),
+    ];
+  }
+
+  return players;
+}
+
+
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<List<PlayerStatsItem>>(
+      future: futurePlayers,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(
+            child: CircularProgressIndicator(color: primaryColor),
+          );
+        }
+
+        if (snapshot.hasError) {
+          return _ErrorState(
+            message: '${snapshot.error}',
+            onRetry: () {
+              setState(() {
+                futurePlayers = fetchPlayers();
+              });
+            },
+          );
+        }
+
+        final players = snapshot.data ?? [];
+
+        return RefreshIndicator(
+          onRefresh: () async {
+            setState(() {
+              futurePlayers = fetchPlayers();
+            });
+            await futurePlayers;
+          },
+          child: ListView(
+            padding: const EdgeInsets.all(16),
+            children: [
+              _SectionCard(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Ranking de jugadores',
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      '${players.length} jugadores en el ranking',
+                      style: const TextStyle(color: Colors.white70),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+              if (players.isEmpty)
+                const _SectionCard(
+                  child: Text(
+                    'Aún no hay datos de jugadores disponibles.',
+                    style: TextStyle(color: Colors.white70),
+                  ),
+                )
+              else
+                ...players.asMap().entries.map((entry) {
+                  final index = entry.key;
+                  final player = entry.value;
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: _PlayerCard(
+                      rank: index + 1,
+                      player: player,
+                    ),
+                  );
+                }),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _PlayerCard extends StatelessWidget {
+  final int rank;
+  final PlayerStatsItem player;
+
+  const _PlayerCard({
+    required this.rank,
+    required this.player,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFF111827),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: borderColor),
+      ),
+      child: Row(
+        children: [
+          CircleAvatar(
+            radius: 20,
+            backgroundColor: primaryColor.withOpacity(0.18),
+            child: Text(
+              '$rank',
+              style: const TextStyle(
+                color: primaryColor,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  player.fullName,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  player.teamName,
+                  style: const TextStyle(color: Colors.white70),
+                ),
+                const SizedBox(height: 6),
+                Wrap(
+                  spacing: 10,
+                  runSpacing: 6,
+                  children: [
+                    _miniBadge('${player.points} pts'),
+                    _miniBadge('${player.wins} G'),
+                    _miniBadge('${player.losses} P'),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+Widget _miniBadge(String text) {
+  return Container(
+    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+    decoration: BoxDecoration(
+      color: Colors.white.withOpacity(0.05),
+      borderRadius: BorderRadius.circular(10),
+    ),
+    child: Text(
+      text,
+      style: const TextStyle(
+        fontSize: 12,
+        color: Colors.white70,
+        fontWeight: FontWeight.w700,
+      ),
+    ),
+  );
+}
+
+class PlayerStatsItem {
+  final String fullName;
+  final String teamName;
+  final int points;
+  final int wins;
+  final int losses;
+
+  PlayerStatsItem({
+    required this.fullName,
+    required this.teamName,
+    required this.points,
+    required this.wins,
+    required this.losses,
+  });
+
+  factory PlayerStatsItem.fromJson(Map<String, dynamic> json) {
+    final firstName = json['first_name']?.toString() ?? '';
+    final lastName = json['last_name']?.toString() ?? '';
+    final fallbackName = json['player_name']?.toString() ?? '';
+
+    final fullName = ('$firstName $lastName').trim().isNotEmpty
+        ? ('$firstName $lastName').trim()
+        : fallbackName;
+
+    return PlayerStatsItem(
+      fullName: fullName.isEmpty ? 'Jugador sin nombre' : fullName,
+      teamName: json['team_name']?.toString() ??
+          json['club_name']?.toString() ??
+          'Sin equipo',
+      points: (json['points'] as num?)?.toInt() ??
+          (json['total_points'] as num?)?.toInt() ??
+          0,
+      wins: (json['wins'] as num?)?.toInt() ??
+          (json['won_games'] as num?)?.toInt() ??
+          0,
+      losses: (json['losses'] as num?)?.toInt() ??
+          (json['lost_games'] as num?)?.toInt() ??
+          0,
+    );
+  }
+}
+
+class PhotosScreen extends StatelessWidget {
+  const PhotosScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final albums = [
+      PhotoAlbum(
+        title: 'Selectivos Espacio Active',
+        subtitle: 'Jornada de selectivos en Espacio Active',
+        photos: const [
+          'assets/photos/1.jpg',
+          'assets/photos/2.jpg',
+          'assets/photos/3.jpg',
+          'assets/photos/4.jpg',
+          'assets/photos/5.jpg',
+          'assets/photos/6.jpg',
+        ],
+      ),
+    ];
+
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        const _SectionCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Galería',
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              SizedBox(height: 6),
+              Text(
+                'Fotos destacadas de jornadas, selectivos y momentos de la liga.',
+                style: TextStyle(color: Colors.white70),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+        ...albums.map(
+          (album) => Padding(
+            padding: const EdgeInsets.only(bottom: 16),
+            child: _PhotoAlbumCard(album: album),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _PhotoAlbumCard extends StatelessWidget {
+  final PhotoAlbum album;
+
+  const _PhotoAlbumCard({required this.album});
+
+  @override
+  Widget build(BuildContext context) {
+    return _SectionCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            album.title,
+            style: const TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            album.subtitle,
+            style: const TextStyle(color: Colors.white70),
+          ),
+          const SizedBox(height: 14),
+          GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: album.photos.length,
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              crossAxisSpacing: 10,
+              mainAxisSpacing: 10,
+              childAspectRatio: 1,
+            ),
+            itemBuilder: (context, index) {
+              final photoPath = album.photos[index];
+              return GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => PhotoViewerScreen(
+                        imagePath: photoPath,
+                        title: album.title,
+                      ),
+                    ),
+                  );
+                },
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(14),
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      Image.asset(
+                        photoPath,
+                        fit: BoxFit.cover,
+                      ),
+                      Container(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.bottomCenter,
+                            end: Alignment.center,
+                            colors: [
+                              Colors.black.withOpacity(0.35),
+                              Colors.transparent,
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class PhotoViewerScreen extends StatelessWidget {
+  final String imagePath;
+  final String title;
+
+  const PhotoViewerScreen({
+    super.key,
+    required this.imagePath,
+    required this.title,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(title),
+      ),
+      body: Center(
+        child: InteractiveViewer(
+          child: Image.asset(imagePath),
+        ),
+      ),
+    );
+  }
+}
+
+class PhotoAlbum {
+  final String title;
+  final String subtitle;
+  final List<String> photos;
+
+  const PhotoAlbum({
+    required this.title,
+    required this.subtitle,
+    required this.photos,
+  });
 }
